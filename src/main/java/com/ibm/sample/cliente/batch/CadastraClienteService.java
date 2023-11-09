@@ -72,6 +72,43 @@ public class CadastraClienteService extends PropagacaoContexto {
 			span.finish();
 		}
 	}
+
+	@KafkaListener(topics = "${cliente-update-topico}")
+	public void atualizaCLente(Cliente cliente,  @Headers MessageHeaders headers)
+	{
+		
+		logger.debug("[atualizaCliente] " + cliente);
+		
+		if (cliente==null || cliente.getCpf()==0L) //health check
+		{
+			logger.debug("CPF 0, sintect transaction, it will be ignored! ");
+			return;
+		}
+		Span span = this.startConsumerSpan("consomeMensagemAtualizacaoCliente", headers, tracer);
+		try
+		{
+			span.setTag("payload", cliente.toString());
+			RestTemplate clienteRest = new RestTemplate();
+			logger.debug("Invoking Rest API to store the customer data in the database");
+			HttpHeaders httpHeaders = new HttpHeaders();
+			HttpHeaderInjectAdapter h1 = new HttpHeaderInjectAdapter(httpHeaders);
+			tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS,h1);
+			HttpEntity<Cliente> entity = new HttpEntity<>(cliente, h1.getHeaders());
+			RetornoCliente retorno = clienteRest.postForObject(urlClienteRest,entity, RetornoCliente.class);
+			logger.info("Customer Record return by API: " + retorno.getMensagem() + ", Customer: " + retorno.getCliente().toString());
+			//System.out.println("Resultado " + retorno.getMensagem());
+		}
+		catch (Exception e)
+		{
+			span.log("Error: " + e.getMessage() );
+			span.setTag("error",true);
+			logger.error("Error to save the customer: " + cliente.toString() + ", error: " + e.getMessage(), e);
+		}
+		finally{
+			span.finish();
+		}
+	}
+
 	
 	@KafkaListener(topics = "${delete-cliente-kafka-topico}", groupId = "Delete-Cliente")
 	public void excluiCliente(Cliente cliente,  @Headers MessageHeaders headers)

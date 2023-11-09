@@ -94,9 +94,9 @@ public class CadastraClienteService extends PropagacaoContexto {
 			HttpHeaderInjectAdapter h1 = new HttpHeaderInjectAdapter(httpHeaders);
 			tracer.inject(span.context(), Format.Builtin.HTTP_HEADERS,h1);
 			HttpEntity<Cliente> entity = new HttpEntity<>(cliente, h1.getHeaders());
-			RetornoCliente retorno = clienteRest.postForObject(urlClienteRest,entity, RetornoCliente.class);
-			logger.info("Customer Record return by API: " + retorno.getMensagem() + ", Customer: " + retorno.getCliente().toString());
-			//System.out.println("Resultado " + retorno.getMensagem());
+			clienteRest.put(new URI(urlClienteRest), entity);
+			//logger.info("Customer Record return by API: " + retorno.getMensagem() + ", Customer: " + retorno.getCliente().toString());
+	
 		}
 		catch (Exception e)
 		{
